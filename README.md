@@ -8,6 +8,6 @@
 
 - Spring Boot
 - Spring JPA
-- H2 im-memory database
+- H2 in-memory database
 - HATEOAS (Hypermedia As The Engine Of Application State)
 - maven build tool
