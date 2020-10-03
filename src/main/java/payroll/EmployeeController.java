@@ -1,7 +1,9 @@
 package payroll;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,14 +17,23 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class EmployeeController {
     private final EmployeeRepository repository;
+    private final EmployeeModelAssembler assembler;
 
-    public EmployeeController(EmployeeRepository repository) {
+    public EmployeeController(EmployeeRepository repository,
+    EmployeeModelAssembler assembler) {
         this.repository = repository;
+        this.assembler=assembler;
     }
 
     @GetMapping("/employees")
-    List<Employee> all() {
-        return repository.findAll();
+    CollectionModel<EntityModel<Employee>> all() {
+    
+      List<EntityModel<Employee>> employees = repository.findAll().stream()
+          .map(assembler::toModel)
+          .collect(Collectors.toList());
+    
+      return CollectionModel.of(employees, 
+      WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EmployeeController.class).all()).withSelfRel());
     }
 
     @PostMapping("/employees")
@@ -34,10 +45,7 @@ public class EmployeeController {
     EntityModel<Employee> one(@PathVariable long id) {
         Employee employee = repository.findById(id).orElseThrow(() -> new EmployeeNotFoundException(id));
 
-        return EntityModel.of(employee,
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EmployeeController.class).one(id)).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(EmployeeController.class).all())
-                        .withRel("employees"));
+        return assembler.toModel(employee);
     }
 
     @PutMapping("/employees/{id}")
